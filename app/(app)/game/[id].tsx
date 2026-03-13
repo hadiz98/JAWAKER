@@ -5,6 +5,7 @@ import { useGame } from "@/src/hooks/useGame";
 import { useAuth } from "@/src/hooks/useAuth";
 import { isMyTurn, getOpponents, getTimeRemaining } from "@/src/engine/selectors";
 import { Hand } from "@/src/components/Hand";
+import { Table } from "@/src/components/Table";
 import { TurnTimer } from "@/src/components/TurnTimer";
 
 export default function GameScreen() {
@@ -19,6 +20,10 @@ export default function GameScreen() {
   const opponents = getOpponents(state, user?.id);
   const deadline = state?.turnDeadline ?? 0;
   const totalSeconds = 30;
+  const tableCards = (state?.publicState?.tableCards ?? []) as import("@/src/engine/types").Card[];
+  const isFinished = state?.status === "finished";
+  const winnerId = state?.winner;
+  const winnerPlayer = state?.players.find((p) => p.id === winnerId);
 
   if (!gameId) {
     return (
@@ -62,6 +67,10 @@ export default function GameScreen() {
           ))}
         </View>
 
+        <View className="my-4">
+          <Table cards={tableCards} />
+        </View>
+
         <Hand
           cards={myHand}
           disabled={!myTurn}
@@ -70,6 +79,31 @@ export default function GameScreen() {
           playerId={user?.id ?? ""}
         />
       </View>
+
+      {isFinished && (
+        <View className="absolute inset-0 items-center justify-center bg-black/50 px-6">
+          <View className="w-full max-w-sm rounded-2xl bg-white p-6 dark:bg-neutral-800">
+            <Text className="mb-2 text-center text-lg font-bold text-neutral-900 dark:text-white">
+              Game over
+            </Text>
+            <Text className="mb-6 text-center text-neutral-600 dark:text-neutral-400">
+              {winnerId === user?.id
+                ? "You win!"
+                : winnerPlayer
+                  ? `${winnerPlayer.username} wins`
+                  : "Game ended"}
+            </Text>
+            <Pressable
+              onPress={() => router.replace("/(app)/home")}
+              className="rounded-xl bg-neutral-900 py-3 dark:bg-white"
+            >
+              <Text className="text-center font-semibold text-white dark:text-neutral-900">
+                Back to home
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

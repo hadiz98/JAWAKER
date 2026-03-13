@@ -25,6 +25,7 @@ class TemplateGameRules implements IGameRules {
       hands: handsMap,
       publicState: {
         gameType: this.gameType,
+        tableCards: [] as Card[],
       },
       currentPlayerId: firstPlayer.id,
       turnDeadline: calculateDeadline(this.turnTimeoutSeconds),
@@ -62,7 +63,9 @@ class TemplateGameRules implements IGameRules {
 
     if (move.type === "play_card" && move.card) {
       hands[playerId] = (hands[playerId] ?? []).filter((c) => c.id !== move.card!.id);
-      // TODO: add card to current trick / discard in publicState
+      const tableCards = (publicState.tableCards as Card[] ?? []).slice();
+      tableCards.push(move.card);
+      (publicState as { tableCards: Card[] }).tableCards = tableCards;
     }
 
     const currentIndex = state.players.findIndex((p) => p.id === playerId);
@@ -79,8 +82,8 @@ class TemplateGameRules implements IGameRules {
   }
 
   getWinner(state: GameState): string | null {
-    // TODO: e.g. check if all hands empty or target score reached
-    return null;
+    const emptyHandPlayer = state.players.find((p) => (state.hands[p.id] ?? []).length === 0);
+    return emptyHandPlayer?.id ?? null;
   }
 
   calculateScore(state: GameState): Record<string, number> {

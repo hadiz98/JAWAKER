@@ -23,7 +23,7 @@ class TemplateGameRules implements IGameRules {
     return {
       players,
       hands: handsMap,
-      publicState: { gameType: this.gameType },
+      publicState: { gameType: this.gameType, tableCards: [] as Card[] },
       currentPlayerId: firstPlayer.id,
       turnDeadline: calculateDeadline(this.turnTimeoutSeconds),
       round: 1,
@@ -57,6 +57,9 @@ class TemplateGameRules implements IGameRules {
 
     if (move.type === "play_card" && move.card) {
       hands[playerId] = (hands[playerId] ?? []).filter((c) => c.id !== move.card!.id);
+      const tableCards = ((publicState.tableCards as Card[]) ?? []).slice();
+      tableCards.push(move.card);
+      (publicState as { tableCards: Card[] }).tableCards = tableCards;
     }
 
     const currentIndex = state.players.findIndex((p) => p.id === playerId);
@@ -73,7 +76,8 @@ class TemplateGameRules implements IGameRules {
   }
 
   getWinner(state: GameState): string | null {
-    return null;
+    const emptyHandPlayer = state.players.find((p) => (state.hands[p.id] ?? []).length === 0);
+    return emptyHandPlayer?.id ?? null;
   }
 
   calculateScore(state: GameState): Record<string, number> {

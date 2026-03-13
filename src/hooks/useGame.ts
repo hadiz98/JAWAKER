@@ -44,14 +44,24 @@ export function useGame(gameId: string | null) {
     channelRef.current = eventBus.connectGame(gameId, user.id);
     eventBus.trackPresenceGame({ userId: user.id, status: "online" });
 
-    const unsubMove = eventBus.onGame("MOVE_APPLIED", (payload) => {
-      const p = payload as { state?: GameState; myHand?: import("@/src/engine/types").Card[]; userId?: string };
-      if (p.state && p.userId === user.id && p.myHand) syncFromServer(p.state, p.myHand);
-      else if (p.state) syncFromServer(p.state, useGameStore.getState().myHand);
+    const unsubMove = eventBus.onGame("MOVE_APPLIED", async (payload) => {
+      const p = payload as { state?: GameState; winner?: string };
+      if (!p.state) return;
+      const { data: myRow } = await supabase
+        .from("game_players")
+        .select("hand")
+        .eq("game_id", gameId)
+        .eq("user_id", user.id)
+        .single();
+      const myHand = (myRow?.hand ?? []) as import("@/src/engine/types").Card[];
+      const stateWithWinner = p.winner ? { ...p.state, status: "finished" as const, winner: p.winner } : p.state;
+      syncFromServer(stateWithWinner, myHand);
     });
 
-    const unsubOver = eventBus.onGame("GAME_OVER", () => {
-      useGameStore.getState().state && useGameStore.setState((s) => ({ ...s, state: { ...s.state!, status: "finished" as const } }));
+    const unsubOver = eventBus.onGame("GAME_OVER", (payload) => {
+      const p = payload as { winner?: string };
+      const s = useGameStore.getState().state;
+      if (s) useGameStore.setState({ state: { ...s, status: "finished", winner: p.winner } });
     });
 
     return () => {

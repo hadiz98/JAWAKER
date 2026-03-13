@@ -142,6 +142,9 @@ Deno.serve(async (req: Request) => {
     .update({ status: "active", updated_at: new Date().toISOString() })
     .eq("id", room_id);
 
+  const roomChannel = supabaseAdmin.channel(`room:${room_id}`);
+  await roomChannel.httpSend("GAME_STARTED", { game_id: game.id }).catch(() => {});
+
   return new Response(
     JSON.stringify({ game_id: game.id, game }),
     {

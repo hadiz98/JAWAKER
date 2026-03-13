@@ -130,6 +130,19 @@ Deno.serve(async (req: Request) => {
     move,
   });
 
+  // Broadcast MOVE_APPLIED so all clients sync (state without hands; clients refetch own hand)
+  const stateForBroadcast = { ...newState, hands: {} };
+  const channel = supabaseAdmin.channel(`game:${game_id}`);
+  await channel.httpSend("MOVE_APPLIED", {
+    move,
+    state: stateForBroadcast,
+    winner: winner ?? undefined,
+  }).catch(() => {});
+
+  if (winner !== null) {
+    await channel.httpSend("GAME_OVER", { winner }).catch(() => {});
+  }
+
   return new Response(
     JSON.stringify({ ok: true }),
     {
