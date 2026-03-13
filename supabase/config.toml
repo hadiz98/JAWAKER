@@ -1,0 +1,20 @@
+# Supabase local config (optional). Use with: supabase start
+# For remote-only workflow, migrations are run via Dashboard SQL Editor or: supabase db push
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+shadow_port = 54320
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+
+[storage]
+enabled = true
