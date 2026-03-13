@@ -24,7 +24,7 @@ class TemplateGameRules implements IGameRules {
       players,
       hands: handsMap,
       publicState: {
-        // TODO: game-specific initial state (e.g. trump, currentTrick)
+        gameType: this.gameType,
       },
       currentPlayerId: firstPlayer.id,
       turnDeadline: calculateDeadline(this.turnTimeoutSeconds),

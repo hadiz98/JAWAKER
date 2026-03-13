@@ -33,16 +33,29 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <View className="mt-16 flex-1 items-center justify-center">
+      <View className="mt-16 flex-1 items-center justify-center gap-6">
         <Text className="mb-2 text-2xl font-bold text-neutral-900 dark:text-white">
           Jawaker
         </Text>
-        <Text className="mb-8 text-center text-neutral-600 dark:text-neutral-400">
+        <Text className="mb-4 text-center text-neutral-600 dark:text-neutral-400">
           Create or join a game to get started
         </Text>
-        <Text className="text-sm text-neutral-500 dark:text-neutral-500">
-          (Create Game / Join Game — Phase 10)
-        </Text>
+        <Pressable
+          onPress={() => router.push("/(app)/room/create")}
+          className="min-w-[200] rounded-xl bg-neutral-900 py-3 active:opacity-80 dark:bg-white"
+        >
+          <Text className="text-center font-semibold text-white dark:text-neutral-900">
+            Create game
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/(app)/room/join")}
+          className="min-w-[200] rounded-xl border-2 border-neutral-900 py-3 active:opacity-80 dark:border-white"
+        >
+          <Text className="text-center font-semibold text-neutral-900 dark:text-white">
+            Join game
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
