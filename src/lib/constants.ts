@@ -4,3 +4,9 @@
 export const TURN_TIMEOUT_DEFAULT_SECONDS = 30;
 export const MAX_PLAYERS_DEFAULT = 4;
 export const MIN_PLAYERS_DEFAULT = 2;
+
+/** Display names for game types in the create-room dropdown. */
+export const GAME_TYPE_NAMES: Record<string, string> = {
+  template: "Template (any card)",
+  trix: "Trix (2-player tricks)",
+};

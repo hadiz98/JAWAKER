@@ -1,0 +1,35 @@
+-- Optional: turn timeout safety net when all clients disconnect.
+--
+-- 1. In Supabase Dashboard → Database → Extensions, enable:
+--    - pg_cron (scheduled jobs)
+--    - pg_net (HTTP from PostgreSQL; if available in your plan)
+--
+-- 2. If using pg_net: create an Edge Function or HTTP endpoint that accepts
+--    a game_id and applies forfeit_turn for the current player (using service
+--    role). Then call it from the function below via net.http_post().
+--
+-- 3. If pg_net is not available: rely on client-side grace period (60s) when
+--    one player disconnects; if all disconnect, the game stays on the same
+--    turn until someone reconnects or you handle it manually.
+--
+-- Example stub (no-op until you implement the HTTP call):
+-- CREATE OR REPLACE FUNCTION public.forfeit_expired_turns()
+-- RETURNS void
+-- LANGUAGE plpgsql
+-- SECURITY DEFINER SET search_path = public
+-- AS $$
+-- DECLARE
+--   r record;
+-- BEGIN
+--   FOR r IN
+--     SELECT g.id
+--     FROM public.games g
+--     WHERE g.status = 'active' AND g.turn_deadline < (extract(epoch from now()) * 1000)::bigint
+--   LOOP
+--     -- Call your Edge Function or internal API here (e.g. via pg_net).
+--     NULL;
+--   END LOOP;
+-- END;
+-- $$;
+--
+-- SELECT cron.schedule('forfeit-expired-turns', '30 seconds', 'SELECT public.forfeit_expired_turns()');

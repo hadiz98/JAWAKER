@@ -81,14 +81,25 @@ Deno.serve(async (req: Request) => {
   const rules = gameRegistry.get(gameType);
   const state = gameRow.game_state as import("../_shared/types.ts").GameState;
 
-  if (state.currentPlayerId !== user.id) {
+  const isForfeitTurn = move?.type === "forfeit_turn";
+  const movingPlayerId = isForfeitTurn ? state.currentPlayerId : user.id;
+  if (state.currentPlayerId !== movingPlayerId && !isForfeitTurn) {
     return new Response(
       JSON.stringify({ error: "Not your turn" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
+  if (isForfeitTurn) {
+    const playersInGame = (state.players as { id: string }[]).map((p) => p.id);
+    if (!playersInGame.includes(user.id)) {
+      return new Response(
+        JSON.stringify({ error: "Not in this game" }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
 
-  if (!rules.isValidMove(state, move as import("../_shared/types.ts").Move, user.id)) {
+  if (!rules.isValidMove(state, move as import("../_shared/types.ts").Move, movingPlayerId)) {
     return new Response(
       JSON.stringify({ error: "Invalid move" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
@@ -126,7 +137,7 @@ Deno.serve(async (req: Request) => {
 
   await supabaseAdmin.from("moves").insert({
     game_id,
-    user_id: user.id,
+    user_id: movingPlayerId,
     move,
   });
 

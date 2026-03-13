@@ -7,11 +7,13 @@ import type { GameState } from "@/src/engine/types";
 
 const FUNCTIONS_URL =
   (process.env.EXPO_PUBLIC_SUPABASE_URL ?? "") + "/functions/v1";
+const GRACE_PERIOD_MS = 60_000;
 
 export function useGame(gameId: string | null) {
   const { user } = useAuth();
   const { setGame, syncFromServer, applyMoveOptimistic, rollbackMove, clear } = useGameStore();
   const channelRef = useRef<ReturnType<typeof eventBus.connectGame> | null>(null);
+  const graceTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     if (!gameId || !user) return;
@@ -44,6 +46,34 @@ export function useGame(gameId: string | null) {
     channelRef.current = eventBus.connectGame(gameId, user.id);
     eventBus.trackPresenceGame({ userId: user.id, status: "online" });
 
+    const unsubLeave = eventBus.onPresenceLeave((leftUserId) => {
+      if (leftUserId === user.id) return;
+      if (graceTimersRef.current[leftUserId]) {
+        clearTimeout(graceTimersRef.current[leftUserId]);
+      }
+      graceTimersRef.current[leftUserId] = setTimeout(async () => {
+        delete graceTimersRef.current[leftUserId];
+        if (cancelled) return;
+        const s = useGameStore.getState().state;
+        if (s?.status !== "active" || s.currentPlayerId !== leftUserId) return;
+        const { data: session } = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (!token) return;
+        await fetch(`${FUNCTIONS_URL}/play-move`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ game_id: gameId, move: { type: "forfeit_turn" } }),
+        });
+      }, GRACE_PERIOD_MS);
+    });
+
+    const unsubJoin = eventBus.onPresenceJoin((joinedUserId) => {
+      if (graceTimersRef.current[joinedUserId]) {
+        clearTimeout(graceTimersRef.current[joinedUserId]);
+        delete graceTimersRef.current[joinedUserId];
+      }
+    });
+
     const unsubMove = eventBus.onGame("MOVE_APPLIED", async (payload) => {
       const p = payload as { state?: GameState; winner?: string };
       if (!p.state) return;
@@ -66,6 +96,10 @@ export function useGame(gameId: string | null) {
 
     return () => {
       cancelled = true;
+      Object.values(graceTimersRef.current).forEach(clearTimeout);
+      graceTimersRef.current = {};
+      unsubLeave();
+      unsubJoin();
       unsubMove();
       unsubOver();
       eventBus.disconnect();

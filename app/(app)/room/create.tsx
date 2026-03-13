@@ -4,6 +4,7 @@ import { Alert, Pressable, Text, View } from "react-native";
 import { supabase } from "@/src/lib/supabase";
 import { useRoomStore } from "@/src/store/roomStore";
 import { gameRegistry } from "@/src/engine/registry";
+import { GAME_TYPE_NAMES } from "@/src/lib/constants";
 import "@/src/games";
 
 const FUNCTIONS_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? "") + "/functions/v1";
@@ -76,7 +77,7 @@ export default function CreateRoomScreen() {
                 gameType === gt ? "text-neutral-900 dark:text-white" : "text-neutral-600 dark:text-neutral-400"
               }`}
             >
-              {gt}
+              {GAME_TYPE_NAMES[gt] ?? gt}
             </Text>
           </Pressable>
         ))}

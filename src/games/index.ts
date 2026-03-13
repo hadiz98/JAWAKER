@@ -3,3 +3,4 @@
  * Add a line per game: import "./mygame";
  */
 import "./_template";
+import "./trix";

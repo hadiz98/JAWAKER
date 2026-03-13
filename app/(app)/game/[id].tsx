@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View, Text, Pressable } from "react-native";
+import { AppState, AppStateStatus, View, Text, Pressable } from "react-native";
 import { useGameStore } from "@/src/store/gameStore";
 import { useGame } from "@/src/hooks/useGame";
 import { useAuth } from "@/src/hooks/useAuth";
+import { supabase } from "@/src/lib/supabase";
 import { isMyTurn, getOpponents, getTimeRemaining } from "@/src/engine/selectors";
 import { Hand } from "@/src/components/Hand";
 import { Table } from "@/src/components/Table";
@@ -15,6 +17,20 @@ export default function GameScreen() {
   const state = useGameStore((s) => s.state);
   const myHand = useGameStore((s) => s.myHand);
   const { playCard } = useGame(gameId ?? null);
+
+  useEffect(() => {
+    if (!gameId || !user || state?.status !== "active") return;
+    const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
+      const connected = next === "active";
+      supabase
+        .from("game_players")
+        .update({ is_connected: connected, updated_at: new Date().toISOString() })
+        .eq("game_id", gameId)
+        .eq("user_id", user.id)
+        .then(() => {});
+    });
+    return () => sub.remove();
+  }, [gameId, user?.id, state?.status]);
 
   const myTurn = isMyTurn(state, user?.id);
   const opponents = getOpponents(state, user?.id);

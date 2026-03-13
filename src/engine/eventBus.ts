@@ -11,6 +11,8 @@ let roomChannel: RealtimeChannel | null = null;
 
 const gameHandlers = new Map<GameEvent, Set<(payload: EventPayload) => void>>();
 const roomHandlers = new Map<RoomEvent, Set<(payload: EventPayload) => void>>();
+const presenceJoinHandlers = new Set<(userId: string) => void>();
+const presenceLeaveHandlers = new Set<(userId: string) => void>();
 
 function getGameHandlers(event: GameEvent): Set<(payload: EventPayload) => void> {
   if (!gameHandlers.has(event)) gameHandlers.set(event, new Set());
@@ -43,6 +45,12 @@ export const eventBus = {
       })
       .on("broadcast", { event: "GAME_OVER" }, (m: { payload?: EventPayload }) => {
         getGameHandlers("GAME_OVER").forEach((h) => h((m.payload ?? m) as EventPayload));
+      })
+      .on("presence", { event: "join" }, ({ key }) => {
+        if (key) presenceJoinHandlers.forEach((h) => h(key));
+      })
+      .on("presence", { event: "leave" }, ({ key }) => {
+        if (key) presenceLeaveHandlers.forEach((h) => h(key));
       });
     gameChannel.subscribe();
     return gameChannel;
@@ -95,5 +103,15 @@ export const eventBus = {
 
   trackPresenceGame(data: { userId: string; status?: string }) {
     gameChannel?.track(data);
+  },
+
+  onPresenceJoin(handler: (userId: string) => void) {
+    presenceJoinHandlers.add(handler);
+    return () => presenceJoinHandlers.delete(handler);
+  },
+
+  onPresenceLeave(handler: (userId: string) => void) {
+    presenceLeaveHandlers.add(handler);
+    return () => presenceLeaveHandlers.delete(handler);
   },
 };

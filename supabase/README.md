@@ -4,11 +4,11 @@
 
 **Option A — Supabase Dashboard (recommended)**  
 1. Open your project at [supabase.com](https://supabase.com) → SQL Editor.  
-2. Copy the contents of `migrations/001_initial.sql`.  
-3. Paste and run.  
-4. In Table Editor, confirm: `profiles`, `rooms`, `games`, `game_players`, `moves`.  
-5. Under Database → Triggers, confirm `on_auth_user_created`.  
-6. Under Database → Functions, confirm `generate_room_code` and `handle_new_user`.
+2. Run in order: `migrations/001_initial.sql`, then `migrations/002_game_players_update_is_connected.sql`.  
+3. In Table Editor, confirm: `profiles`, `rooms`, `games`, `game_players`, `moves`.  
+4. Under Database → Triggers, confirm `on_auth_user_created`.  
+5. Under Database → Functions, confirm `generate_room_code` and `handle_new_user`.  
+6. (Optional) See `migrations/003_turn_timeout_cron_optional.sql` for turn-timeout when all clients disconnect.
 
 **Option B — Supabase CLI**  
 ```bash

@@ -34,6 +34,7 @@ class TemplateGameRules implements IGameRules {
   isValidMove(state: GameState, move: Move, playerId: string): boolean {
     if (state.currentPlayerId !== playerId) return false;
     if (state.status !== "active") return false;
+    if (move.type === "forfeit_turn") return true;
     if (move.type === "play_card" && move.card) {
       const hand = state.hands[playerId] ?? [];
       if (!hand.some((c) => c.id === move.card!.id)) return false;
@@ -54,6 +55,18 @@ class TemplateGameRules implements IGameRules {
     const playerId = state.currentPlayerId;
     const hands = { ...state.hands };
     const publicState = { ...state.publicState };
+
+    if (move.type === "forfeit_turn") {
+      const currentIndex = state.players.findIndex((p) => p.id === playerId);
+      const nextIndex = nextPlayerIndex(currentIndex, state.players.length);
+      const nextPlayer = state.players[nextIndex];
+      return {
+        ...state,
+        publicState,
+        currentPlayerId: nextPlayer.id,
+        turnDeadline: calculateDeadline(this.turnTimeoutSeconds),
+      };
+    }
 
     if (move.type === "play_card" && move.card) {
       hands[playerId] = (hands[playerId] ?? []).filter((c) => c.id !== move.card!.id);
