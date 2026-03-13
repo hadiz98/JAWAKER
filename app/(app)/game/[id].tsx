@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { AppState, AppStateStatus, View, Text, Pressable } from "react-native";
+import { Alert, AppState, AppStateStatus, View, Text, Pressable } from "react-native";
 import { useGameStore } from "@/src/store/gameStore";
 import { useGame } from "@/src/hooks/useGame";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -20,6 +20,9 @@ export default function GameScreen() {
   const myHand = useGameStore((s) => s.myHand);
   const coPlayers = useGameStore((s) => s.coPlayers);
   const { playCard } = useGame(gameId ?? null);
+  const handlePlayCard = (card: import("@/src/engine/types").Card) => {
+    playCard(card).catch((e) => Alert.alert("Move failed", e instanceof Error ? e.message : "Something went wrong"));
+  };
 
   useEffect(() => {
     if (!gameId || !user || state?.status !== "active") return;
@@ -41,7 +44,9 @@ export default function GameScreen() {
   const gameType = (state?.publicState?.gameType as string) ?? "template";
   const totalSeconds = state ? (gameRegistry.get(gameType).turnTimeoutSeconds ?? 30) : 30;
   const tableCards = (state?.publicState?.tableCards ?? []) as import("@/src/engine/types").Card[];
+  const currentTrick = (state?.publicState?.currentTrick ?? []) as { card: import("@/src/engine/types").Card; playerId: string }[];
   const tricksWon = (state?.publicState?.tricksWon ?? {}) as Record<string, number> | undefined;
+  const myScore = tricksWon?.[user?.id ?? ""] ?? coPlayers[user?.id ?? ""]?.score ?? 0;
   const isFinished = state?.status === "finished";
   const winnerId = state?.winner;
   const winnerPlayer = state?.players.find((p) => p.id === winnerId);
@@ -68,9 +73,14 @@ export default function GameScreen() {
         <Pressable onPress={() => router.replace("/(app)/home")} className="rounded-lg bg-neutral-200 px-3 py-1.5 dark:bg-neutral-700">
           <Text className="text-sm font-medium text-neutral-900 dark:text-white">Leave</Text>
         </Pressable>
-        <Text className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          Round {state.round}
-        </Text>
+        <View className="flex-row items-center gap-3">
+          <Text className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+            Round {state.round}
+          </Text>
+          <Text className="text-sm font-semibold text-neutral-900 dark:text-white">
+            You: {myScore}
+          </Text>
+        </View>
         {myTurn && (
           <TurnTimer deadline={deadline} totalSeconds={totalSeconds} active={myTurn} />
         )}
@@ -91,13 +101,17 @@ export default function GameScreen() {
         </View>
 
         <View className="my-4">
-          <Table cards={tableCards} />
+          <Table
+            cards={currentTrick.length > 0 ? [] : tableCards}
+            trick={currentTrick.length > 0 ? currentTrick : undefined}
+            players={state?.players}
+          />
         </View>
 
         <Hand
           cards={myHand}
           disabled={!myTurn}
-          onPlayCard={playCard}
+          onPlayCard={handlePlayCard}
           state={state}
           playerId={user?.id ?? ""}
         />
