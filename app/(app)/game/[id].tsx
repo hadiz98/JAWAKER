@@ -5,8 +5,10 @@ import { useGameStore } from "@/src/store/gameStore";
 import { useGame } from "@/src/hooks/useGame";
 import { useAuth } from "@/src/hooks/useAuth";
 import { supabase } from "@/src/lib/supabase";
-import { isMyTurn, getOpponents, getTimeRemaining } from "@/src/engine/selectors";
+import { gameRegistry } from "@/src/engine/registry";
+import { isMyTurn, getOpponents } from "@/src/engine/selectors";
 import { Hand } from "@/src/components/Hand";
+import { PlayerSeat } from "@/src/components/PlayerSeat";
 import { Table } from "@/src/components/Table";
 import { TurnTimer } from "@/src/components/TurnTimer";
 
@@ -16,6 +18,7 @@ export default function GameScreen() {
   const { user } = useAuth();
   const state = useGameStore((s) => s.state);
   const myHand = useGameStore((s) => s.myHand);
+  const coPlayers = useGameStore((s) => s.coPlayers);
   const { playCard } = useGame(gameId ?? null);
 
   useEffect(() => {
@@ -35,8 +38,10 @@ export default function GameScreen() {
   const myTurn = isMyTurn(state, user?.id);
   const opponents = getOpponents(state, user?.id);
   const deadline = state?.turnDeadline ?? 0;
-  const totalSeconds = 30;
+  const gameType = (state?.publicState?.gameType as string) ?? "template";
+  const totalSeconds = state ? (gameRegistry.get(gameType).turnTimeoutSeconds ?? 30) : 30;
   const tableCards = (state?.publicState?.tableCards ?? []) as import("@/src/engine/types").Card[];
+  const tricksWon = (state?.publicState?.tricksWon ?? {}) as Record<string, number> | undefined;
   const isFinished = state?.status === "finished";
   const winnerId = state?.winner;
   const winnerPlayer = state?.players.find((p) => p.id === winnerId);
@@ -72,14 +77,16 @@ export default function GameScreen() {
       </View>
 
       <View className="flex-1 justify-between px-4 py-6">
-        <View className="items-center gap-4">
+        <View className="gap-3">
           {opponents.map((p) => (
-            <View key={p.id} className="rounded-lg bg-white px-4 py-2 dark:bg-neutral-800">
-              <Text className="font-medium text-neutral-900 dark:text-white">
-                {p.username}
-                {state.currentPlayerId === p.id && " (turn)"}
-              </Text>
-            </View>
+            <PlayerSeat
+              key={p.id}
+              player={p}
+              cardCount={coPlayers[p.id]?.cardCount ?? 0}
+              score={coPlayers[p.id]?.score ?? tricksWon?.[p.id] ?? 0}
+              isCurrentTurn={state.currentPlayerId === p.id}
+              isConnected={coPlayers[p.id]?.isConnected ?? true}
+            />
           ))}
         </View>
 

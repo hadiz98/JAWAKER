@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { supabase } from "@/src/lib/supabase";
 import { useRoomStore } from "@/src/store/roomStore";
@@ -18,6 +18,14 @@ export default function CreateRoomScreen() {
 
   const gameTypes = gameRegistry.list();
   const rules = gameTypes.length ? gameRegistry.get(gameType) : null;
+  const minP = rules?.minPlayers ?? 2;
+  const maxP = rules?.maxPlayers ?? 6;
+  const allowedCounts = Array.from({ length: maxP - minP + 1 }, (_, i) => minP + i);
+
+  useEffect(() => {
+    if (maxPlayers < minP) setMaxPlayers(minP);
+    else if (maxPlayers > maxP) setMaxPlayers(maxP);
+  }, [gameType, minP, maxP, maxPlayers]);
 
   async function createRoom() {
     setLoading(true);
@@ -92,8 +100,8 @@ export default function CreateRoomScreen() {
       <Text className="mb-2 text-sm font-medium text-neutral-600 dark:text-neutral-400">
         Max players
       </Text>
-      <View className="mb-8 flex-row gap-2">
-        {[2, 3, 4, 5, 6].map((n) => (
+      <View className="mb-8 flex-row flex-wrap gap-2">
+        {allowedCounts.map((n) => (
           <Pressable
             key={n}
             onPress={() => setMaxPlayers(n)}

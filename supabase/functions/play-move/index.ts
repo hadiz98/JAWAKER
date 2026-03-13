@@ -135,6 +135,16 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  const scores = rules.calculateScore(newState);
+  for (const player of newState.players as { id: string }[]) {
+    const score = scores[player.id] ?? 0;
+    await supabaseAdmin
+      .from("game_players")
+      .update({ score, updated_at: new Date().toISOString() })
+      .eq("game_id", game_id)
+      .eq("user_id", player.id);
+  }
+
   await supabaseAdmin.from("moves").insert({
     game_id,
     user_id: movingPlayerId,
